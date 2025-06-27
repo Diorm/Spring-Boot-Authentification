@@ -1,6 +1,7 @@
 package com.example.authentification.filter;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,8 +10,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.authentification.service.CustomUserDetailsService;
 import com.example.authentification.service.JwtService;
-
-import io.jsonwebtoken.Claims;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -26,13 +25,11 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
 
 import java.security.Key;
 import java.util.Date;
@@ -41,7 +38,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,10 +45,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
-
 import org.springframework.web.filter.OncePerRequestFilter;
-
 
 import java.io.IOException;
 
@@ -102,22 +95,44 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+            try {
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                logger.info("Authorities chargées : {}", userDetails.getAuthorities());
 
-            if (jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.info("Authentification mise à jour dans le contexte de sécurité pour : {}", email);
-            } else {
-                logger.warn("Token invalide ou utilisateur non trouvé");
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token non valide");
+                if (jwtService.validateToken(token, userDetails)) {
+                    // 🔽 EXTRAIRE LES RÔLES DU TOKEN
+                    List<String> roles = jwtService.extractClaim(token, claims -> claims.get("roles", List.class));
+                    logger.info("Rôles extraits du token : {}", roles);
+
+                    // 🔽 CONVERTIR EN AUTHORITIES
+                    List<GrantedAuthority> authorities = roles.stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList());
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, authorities);
+
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.info("Authentification mise à jour dans le contexte de sécurité pour : {} avec rôles : {}",
+                            email, authorities);
+                } else {
+                    logger.warn("Token non valide pour l'utilisateur : {}", email);
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token non valide");
+                    return;
+                }
+            } catch (Exception e) {
+                logger.error("Erreur lors du traitement de l'authentification : {}", e.getMessage(), e);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Erreur d'authentification");
                 return;
             }
         }
 
-        filterChain.doFilter(request, response); // Continue la chaîne
+        // ⚠️ IMPORTANT : Continuer la chaîne de filtres
+        filterChain.doFilter(request, response);
     }
+
+
+
+    
 }

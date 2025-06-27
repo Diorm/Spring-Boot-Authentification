@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.authentification.dto.LoginRequest;
+import com.example.authentification.dto.RoleChangeRequest;
 import com.example.authentification.dto.UserRegistrationDto;
 import com.example.authentification.exception.CustomException;
 import com.example.authentification.service.AuthService;
@@ -26,31 +27,6 @@ public class AuthController {
     private final UserService userService;
     private final AuthService authService;
 
-//     @PostMapping("/register")
-//     public ResponseEntity<?> register(@RequestBody UserRegistrationDto registrationDto) {
-//             System.out.println("Données reçues: " + registrationDto.toString());
-
-//         try {
-//             var user = userService.registerUser(registrationDto);
-//             return ResponseEntity.ok("Inscription réussie");
-//         } catch (CustomException e) {
-//             return ResponseEntity.badRequest().body(e.getMessage());
-//         }
-//     }
-
-
-//    @PostMapping("/login")
-// public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-//     System.out.println("Requête reçue dans /login");
-//     return ResponseEntity.ok(authService.login(loginRequest));
-// }
-
-//     @PostMapping("/logout")
-//     public ResponseEntity<String> logout() {
-//         return ResponseEntity.ok(authService.logout());
-//     }
-
-//     public record LoginResponse(String message, Map<String, Object> user) {}
 
 
   @PostMapping("/register")
@@ -82,4 +58,11 @@ public class AuthController {
     // ✅ Record mis à jour avec 'token'
     public record LoginResponse(String message, Map<String, Object> user, String token) {}
 
+
+
+    @PutMapping("/users/{userId}/role")
+    public ResponseEntity<?> updateRole(@PathVariable Long userId, @RequestBody RoleChangeRequest request) {
+        userService.changeUserRole(userId, request.getRole());
+        return ResponseEntity.ok().build();
+    }
 }

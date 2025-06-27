@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.authentification.dto.RoleChangeRequest;
+import com.example.authentification.entity.Role;
 import com.example.authentification.entity.User;
 import com.example.authentification.service.UserService;
 
@@ -32,5 +33,11 @@ public class AdminController {
     public ResponseEntity<?> updateRole(@PathVariable Long userId, @RequestBody RoleChangeRequest request) {
         userService.changeUserRole(userId, request.getRole(), request.isAdd());
         return ResponseEntity.ok().build();
+    }
+
+    // récupérer tous les rôles disponibles
+    @GetMapping("/roles")
+    public List<Role> getAllRoles() {
+        return userService.getAllRoles();
     }
 }

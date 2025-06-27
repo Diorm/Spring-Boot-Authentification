@@ -14,7 +14,6 @@ import com.example.authentification.repository.UserRepository;
 
 import java.util.*;
 
-
 @Service
 public class UserService {
 
@@ -28,7 +27,8 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public User registerUser(UserRegistrationDto registrationDto) {
-        System.out.println("Tentative d'inscription : " + registrationDto.getEmail() + " avec rôles: " + registrationDto.getRoles());
+        System.out.println("Tentative d'inscription : " + registrationDto.getEmail() + " avec rôles: "
+                + registrationDto.getRoles());
         if (userRepository.existsByEmail(registrationDto.getEmail())) {
             throw new CustomException("Email déjà utilisé !");
         }
@@ -71,23 +71,22 @@ public class UserService {
         }
     }
 
-
-    //Pour changer de role
+    // Pour changer de role
     public void changeUserRole(Long userId, String roleName, boolean add) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new CustomException("Utilisateur non trouvé"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("Utilisateur non trouvé"));
 
-    Role role = roleRepository.findByName(RoleEnum.valueOf(roleName))
-        .orElseThrow(() -> new CustomException("Rôle introuvable"));
+        Role role = roleRepository.findByName(RoleEnum.valueOf(roleName))
+                .orElseThrow(() -> new CustomException("Rôle introuvable"));
 
-    if (add) {
-        user.getRoles().add(role);
-    } else {
-        user.getRoles().remove(role);
+        if (add) {
+            user.getRoles().add(role);
+        } else {
+            user.getRoles().remove(role);
+        }
+
+        userRepository.save(user);
     }
-
-    userRepository.save(user);
-}
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -102,5 +101,21 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException("Utilisateur non trouvé"));
         userRepository.delete(user);
+    }
+
+    // changeUserRole
+    public void changeUserRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("Utilisateur non trouvé"));
+        Role role = roleRepository.findByName(RoleEnum.valueOf(roleName))
+                .orElseThrow(() -> new CustomException("Rôle introuvable"));
+        user.getRoles().add(role);
+        userRepository.save(user);
+    }
+
+
+    // récupérer tous les rôles disponibles
+    public List<Role> getAllRoles() {
+        return roleRepository.findAll();
     }
 }
